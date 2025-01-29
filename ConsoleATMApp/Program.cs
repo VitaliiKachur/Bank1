@@ -60,17 +60,15 @@ namespace ConsoleATMApp
                     case "1":
                         accountService.CheckBalance(authenticatedAccount);
                         break;
+
                     case "2":
-                        Console.Write("Введіть суму для зняття: ");
-                        if (decimal.TryParse(Console.ReadLine(), out decimal withdrawAmount))
+                        decimal withdrawAmount = ReadAmountFromUser("Введіть суму для зняття: ");
+                        if (withdrawAmount > 0)
                         {
                             accountService.Withdraw(authenticatedAccount, withdrawAmount);
                         }
-                        else
-                        {
-                            Console.WriteLine("Некоректний формат суми.");
-                        }
                         break;
+
                     case "3":
                         Console.Write("Введіть номер картки отримувача: ");
                         string recipientCard = Console.ReadLine();
@@ -78,14 +76,10 @@ namespace ConsoleATMApp
 
                         if (recipient != null)
                         {
-                            Console.Write("Введіть суму для переказу: ");
-                            if (decimal.TryParse(Console.ReadLine(), out decimal transferAmount))
+                            decimal transferAmount = ReadAmountFromUser("Введіть суму для переказу: ");
+                            if (transferAmount > 0)
                             {
                                 accountService.Transfer(authenticatedAccount, recipient, transferAmount);
-                            }
-                            else
-                            {
-                                Console.WriteLine("Некоректний формат суми.");
                             }
                         }
                         else
@@ -93,9 +87,11 @@ namespace ConsoleATMApp
                             Console.WriteLine("Одержувач не знайдений.");
                         }
                         break;
+
                     case "4":
                         continueUsing = false;
                         break;
+
                     default:
                         Console.WriteLine("Неправильний вибір.");
                         break;
@@ -107,6 +103,18 @@ namespace ConsoleATMApp
 
             Console.WriteLine("Дякуємо за використання сервісу!");
         }
+        private decimal ReadAmountFromUser(string message)
+        {
+            Console.Write(message);
+            if (decimal.TryParse(Console.ReadLine(), out decimal amount) && amount > 0)
+            {
+                return amount;
+            }
+
+            Console.WriteLine("Некоректний формат суми.");
+            return -1;
+        }
+
     }
 
     public class AuthenticationService
