@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 using BankLibrary;
 
@@ -37,19 +36,10 @@ namespace Bank
 
         private void InitializeEvents()
         {
-            authenticateButton.Click -= authenticateButton_Click;
             authenticateButton.Click += authenticateButton_Click;
-
-            checkBalanceButton.Click -= checkBalanceButton_Click;
             checkBalanceButton.Click += checkBalanceButton_Click;
-
-            withdrawButton.Click -= withdrawButton_Click;
             withdrawButton.Click += withdrawButton_Click;
-
-            transferButton.Click -= transferButton_Click;
             transferButton.Click += transferButton_Click;
-
-            logoutButton.Click -= logoutButton_Click;
             logoutButton.Click += logoutButton_Click;
         }
 
@@ -84,6 +74,12 @@ namespace Bank
             messagesListBox.Items.Add(message);
         }
 
+        private void ExecuteIfAuthenticated(Action action)
+        {
+            if (_currentAccount == null) return;
+            action();
+        }
+
         private void authenticateButton_Click(object sender, EventArgs e)
         {
             string cardNumber = cardNumberTextBox.Text;
@@ -104,50 +100,52 @@ namespace Bank
 
         private void checkBalanceButton_Click(object sender, EventArgs e)
         {
-            _currentAccount?.CheckBalance();
+            ExecuteIfAuthenticated(() => _currentAccount.CheckBalance());
         }
-
         private void withdrawButton_Click(object sender, EventArgs e)
         {
-            if (_currentAccount == null) return;
-            if (decimal.TryParse(withdrawAmountTextBox.Text, out decimal amount))
+            ExecuteIfAuthenticated(() =>
             {
-                if (_currentAccount.Withdraw(amount))
+                if (decimal.TryParse(withdrawAmountTextBox.Text, out decimal amount))
                 {
-                    DisplayMessage($"Зняття {amount} успішно виконано.");
+                    if (_currentAccount.Withdraw(amount))
+                    {
+                        DisplayMessage($"Зняття {amount} успішно виконано.");
+                    }
+                    else
+                    {
+                        DisplayMessage("Недостатньо коштів.");
+                    }
                 }
                 else
                 {
-                    DisplayMessage("Недостатньо коштів.");
+                    DisplayMessage("Введіть коректну суму для зняття.");
                 }
-            }
-            else
-            {
-                DisplayMessage("Введіть коректну суму для зняття.");
-            }
+            });
         }
 
         private void transferButton_Click(object sender, EventArgs e)
         {
-            if (_currentAccount == null) return;
-
-            if (decimal.TryParse(transferAmountTextBox.Text, out decimal amount))
+            ExecuteIfAuthenticated(() =>
             {
-                string recipientCard = recipientCardTextBox.Text;
-
-                if (_accounts.TryGetValue(recipientCard, out var recipient) && _currentAccount.Transfer(recipient, amount))
+                if (decimal.TryParse(transferAmountTextBox.Text, out decimal amount))
                 {
-                    DisplayMessage($"Переказ {amount} на картку {recipientCard} успішно виконано.");
+                    string recipientCard = recipientCardTextBox.Text;
+
+                    if (_accounts.TryGetValue(recipientCard, out var recipient) && _currentAccount.Transfer(recipient, amount))
+                    {
+                        DisplayMessage($"Переказ {amount} на картку {recipientCard} успішно виконано.");
+                    }
+                    else
+                    {
+                        DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
+                    }
                 }
                 else
                 {
-                    DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
+                    DisplayMessage("Введіть коректну суму для переказу.");
                 }
-            }
-            else
-            {
-                DisplayMessage("Введіть коректну суму для переказу.");
-            }
+            });
         }
 
         private void logoutButton_Click(object sender, EventArgs e)
