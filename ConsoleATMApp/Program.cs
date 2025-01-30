@@ -17,7 +17,6 @@ namespace ConsoleATMApp
     {
         private List<Account> accounts;
         private AuthenticationService authService;
-        private AccountService accountService;
 
         public ATMApp()
         {
@@ -28,7 +27,6 @@ namespace ConsoleATMApp
             };
 
             authService = new AuthenticationService(accounts);
-            accountService = new AccountService();
         }
 
         public void Run()
@@ -58,14 +56,18 @@ namespace ConsoleATMApp
                 switch (choice)
                 {
                     case "1":
-                        accountService.CheckBalance(authenticatedAccount);
+                        Console.WriteLine($"Ваш поточний баланс: {authenticatedAccount.Balance}");
                         break;
 
                     case "2":
                         decimal withdrawAmount = ReadAmountFromUser("Введіть суму для зняття: ");
-                        if (withdrawAmount > 0)
+                        if (withdrawAmount > 0 && authenticatedAccount.Withdraw(withdrawAmount))
                         {
-                            accountService.Withdraw(authenticatedAccount, withdrawAmount);
+                            Console.WriteLine($"Успішно знято {withdrawAmount}. Новий баланс: {authenticatedAccount.Balance}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Недостатньо коштів або некоректна сума.");
                         }
                         break;
 
@@ -77,9 +79,13 @@ namespace ConsoleATMApp
                         if (recipient != null)
                         {
                             decimal transferAmount = ReadAmountFromUser("Введіть суму для переказу: ");
-                            if (transferAmount > 0)
+                            if (transferAmount > 0 && authenticatedAccount.Transfer(recipient, transferAmount))
                             {
-                                accountService.Transfer(authenticatedAccount, recipient, transferAmount);
+                                Console.WriteLine($"Успішно перераховано {transferAmount} на рахунок {recipient.OwnerName}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Перерахування не вдалося.");
                             }
                         }
                         else
@@ -103,6 +109,7 @@ namespace ConsoleATMApp
 
             Console.WriteLine("Дякуємо за використання сервісу!");
         }
+
         private decimal ReadAmountFromUser(string message)
         {
             Console.Write(message);
@@ -114,7 +121,6 @@ namespace ConsoleATMApp
             Console.WriteLine("Некоректний формат суми.");
             return -1;
         }
-
     }
 
     public class AuthenticationService
@@ -153,51 +159,12 @@ namespace ConsoleATMApp
         }
     }
 
-    public class AccountService
-    {
-        public void CheckBalance(Account account)
-        {
-            Console.WriteLine($"Ваш поточний баланс: {account.Balance}");
-        }
-
-        public void Withdraw(Account account, decimal amount)
-        {
-            if (amount > 0 && account.Withdraw(amount))
-            {
-                Console.WriteLine($"Успішно знято {amount}. Новий баланс: {account.Balance}");
-            }
-            else
-            {
-                Console.WriteLine("Недостатньо коштів або некоректна сума.");
-            }
-        }
-
-        public void Transfer(Account sender, Account recipient, decimal amount)
-        {
-            if (amount > 0 && sender.Transfer(recipient, amount))
-            {
-                Console.WriteLine($"Успішно перераховано {amount} на рахунок {recipient.OwnerName}");
-            }
-            else
-            {
-                Console.WriteLine("Перерахування не вдалося.");
-            }
-        }
-    }
-
-    public delegate void AccountActionHandler(string message);
-
     public class Account
     {
         public string CardNumber { get; private set; }
         public string OwnerName { get; private set; }
         public decimal Balance { get; private set; }
         private string Pin { get; set; }
-
-        public event AccountActionHandler OnAuthentication;
-        public event AccountActionHandler OnBalanceCheck;
-        public event AccountActionHandler OnWithdraw;
-        public event AccountActionHandler OnTransfer;
 
         public Account(string cardNumber, string ownerName, decimal initialBalance, string pin)
         {
@@ -209,9 +176,7 @@ namespace ConsoleATMApp
 
         public bool Authenticate(string cardNumber, string pin)
         {
-            bool success = (this.CardNumber == cardNumber && this.Pin == pin);
-            OnAuthentication?.Invoke(success ? "Аутентифікація успішна" : "Аутентифікація не вдалася");
-            return success;
+            return this.CardNumber == cardNumber && this.Pin == pin;
         }
 
         public bool Withdraw(decimal amount)
@@ -219,10 +184,8 @@ namespace ConsoleATMApp
             if (amount > 0 && amount <= Balance)
             {
                 Balance -= amount;
-                OnWithdraw?.Invoke($"Зняття {amount} успішне. Новий баланс: {Balance}");
                 return true;
             }
-            OnWithdraw?.Invoke("Недостатньо коштів.");
             return false;
         }
 
@@ -231,10 +194,8 @@ namespace ConsoleATMApp
             if (Withdraw(amount))
             {
                 recipient.Balance += amount;
-                OnTransfer?.Invoke($"Перерахування {amount} на рахунок {recipient.OwnerName} успішне.");
                 return true;
             }
-            OnTransfer?.Invoke("Перерахування не вдалося.");
             return false;
         }
     }
