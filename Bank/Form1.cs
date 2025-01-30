@@ -8,7 +8,7 @@ namespace Bank
 {
     public partial class Form1 : Form
     {
-        private List<Account> _accounts;
+        private Dictionary<string, Account> _accounts;
         private Account _currentAccount;
 
         public Form1()
@@ -16,14 +16,14 @@ namespace Bank
             InitializeComponent();
             InitializeEvents();
 
-            _accounts = new List<Account>
+            _accounts = new Dictionary<string, Account>
             {
-                new Account("12345678", "Ivan Ivanov", 5000, "1234"),
-                new Account("4141252547892585", "Іван Франчук", 7000, "7777"),
-                new Account("98765432", "Ольга Петренко", 8000, "1111")
+                { "12345678", new Account("12345678", "Ivan Ivanov", 5000, "1234") },
+                { "4141252547892585", new Account("4141252547892585", "Іван Франчук", 7000, "7777") },
+                { "98765432", new Account("98765432", "Ольга Петренко", 8000, "1111") }
             };
 
-            foreach (var account in _accounts)
+            foreach (var account in _accounts.Values)
             {
                 account.OnAuthentication += DisplayMessage;
                 account.OnBalanceCheck += DisplayMessage;
@@ -89,10 +89,9 @@ namespace Bank
             string cardNumber = cardNumberTextBox.Text;
             string pin = pinTextBox.Text;
 
-            _currentAccount = _accounts.FirstOrDefault(a => a.CardNumber == cardNumber && a.Authenticate(cardNumber, pin));
-
-            if (_currentAccount != null)
+            if (_accounts.TryGetValue(cardNumber, out var account) && account.Authenticate(cardNumber, pin))
             {
+                _currentAccount = account;
                 DisplayMessage("Вхід успішний.");
                 ToggleAuthenticatedControls(true);
             }
@@ -135,9 +134,8 @@ namespace Bank
             if (decimal.TryParse(transferAmountTextBox.Text, out decimal amount))
             {
                 string recipientCard = recipientCardTextBox.Text;
-                Account recipient = _accounts.FirstOrDefault(a => a.CardNumber == recipientCard);
 
-                if (recipient != null && _currentAccount.Transfer(recipient, amount))
+                if (_accounts.TryGetValue(recipientCard, out var recipient) && _currentAccount.Transfer(recipient, amount))
                 {
                     DisplayMessage($"Переказ {amount} на картку {recipientCard} успішно виконано.");
                 }
