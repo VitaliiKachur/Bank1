@@ -25,14 +25,12 @@ namespace ConsoleATMApp
                 new Account("1234567890", "John Doe", 1000, "1000"),
                 new Account("0987654321", "Alice Smith", 1500, "2000")
             };
-
             authService = new AuthenticationService(accounts);
         }
 
         public void Run()
         {
             Account authenticatedAccount = authService.AuthenticateUser();
-
             if (authenticatedAccount == null)
             {
                 Console.WriteLine("Не вдалося увійти в систему.");
@@ -40,6 +38,13 @@ namespace ConsoleATMApp
             }
 
             bool continueUsing = true;
+            var actions = new Dictionary<string, Action>
+            {
+                { "1", () => ShowBalance(authenticatedAccount) },
+                { "2", () => WithdrawMoney(authenticatedAccount) },
+                { "3", () => TransferMoney(authenticatedAccount) },
+                { "4", () => continueUsing = false }
+            };
 
             while (continueUsing)
             {
@@ -52,62 +57,61 @@ namespace ConsoleATMApp
                 Console.Write("Оберіть опцію: ");
 
                 string choice = Console.ReadLine();
-
-                switch (choice)
+                if (actions.TryGetValue(choice, out Action action))
                 {
-                    case "1":
-                        Console.WriteLine($"Ваш поточний баланс: {authenticatedAccount.Balance}");
-                        break;
-
-                    case "2":
-                        decimal withdrawAmount = ReadAmountFromUser("Введіть суму для зняття: ");
-                        if (withdrawAmount > 0 && authenticatedAccount.Withdraw(withdrawAmount))
-                        {
-                            Console.WriteLine($"Успішно знято {withdrawAmount}. Новий баланс: {authenticatedAccount.Balance}");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Недостатньо коштів або некоректна сума.");
-                        }
-                        break;
-
-                    case "3":
-                        Console.Write("Введіть номер картки отримувача: ");
-                        string recipientCard = Console.ReadLine();
-                        Account recipient = accounts.Find(acc => acc.CardNumber == recipientCard);
-
-                        if (recipient != null)
-                        {
-                            decimal transferAmount = ReadAmountFromUser("Введіть суму для переказу: ");
-                            if (transferAmount > 0 && authenticatedAccount.Transfer(recipient, transferAmount))
-                            {
-                                Console.WriteLine($"Успішно перераховано {transferAmount} на рахунок {recipient.OwnerName}");
-                            }
-                            else
-                            {
-                                Console.WriteLine("Перерахування не вдалося.");
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("Одержувач не знайдений.");
-                        }
-                        break;
-
-                    case "4":
-                        continueUsing = false;
-                        break;
-
-                    default:
-                        Console.WriteLine("Неправильний вибір.");
-                        break;
+                    action.Invoke();
+                }
+                else
+                {
+                    Console.WriteLine("Неправильний вибір.");
                 }
 
                 Console.WriteLine("\nНатисніть Enter для продовження...");
                 Console.ReadLine();
             }
-
             Console.WriteLine("Дякуємо за використання сервісу!");
+        }
+
+        private void ShowBalance(Account account)
+        {
+            Console.WriteLine($"Ваш поточний баланс: {account.Balance}");
+        }
+
+        private void WithdrawMoney(Account account)
+        {
+            decimal amount = ReadAmountFromUser("Введіть суму для зняття: ");
+            if (amount > 0 && account.Withdraw(amount))
+            {
+                Console.WriteLine($"Успішно знято {amount}. Новий баланс: {account.Balance}");
+            }
+            else
+            {
+                Console.WriteLine("Недостатньо коштів або некоректна сума.");
+            }
+        }
+
+        private void TransferMoney(Account sender)
+        {
+            Console.Write("Введіть номер картки отримувача: ");
+            string recipientCard = Console.ReadLine();
+            Account recipient = accounts.Find(acc => acc.CardNumber == recipientCard);
+
+            if (recipient != null)
+            {
+                decimal amount = ReadAmountFromUser("Введіть суму для переказу: ");
+                if (amount > 0 && sender.Transfer(recipient, amount))
+                {
+                    Console.WriteLine($"Успішно перераховано {amount} на рахунок {recipient.OwnerName}");
+                }
+                else
+                {
+                    Console.WriteLine("Перерахування не вдалося.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Одержувач не знайдений.");
+            }
         }
 
         private decimal ReadAmountFromUser(string message)
@@ -117,7 +121,6 @@ namespace ConsoleATMApp
             {
                 return amount;
             }
-
             Console.WriteLine("Некоректний формат суми.");
             return -1;
         }
