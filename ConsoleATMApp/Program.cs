@@ -74,7 +74,7 @@ namespace ConsoleATMApp
 
         private void ShowBalance(Account account)
         {
-            Console.WriteLine($"Ваш поточний баланс: {account.Balance}");
+            Console.WriteLine($"Ваш поточний баланс: {account.GetBalance()}");
         }
 
         private void WithdrawMoney(Account account)
@@ -82,7 +82,7 @@ namespace ConsoleATMApp
             decimal amount = ReadAmountFromUser("Введіть суму для зняття: ");
             if (amount > 0 && account.Withdraw(amount))
             {
-                Console.WriteLine($"Успішно знято {amount}. Новий баланс: {account.Balance}");
+                Console.WriteLine($"Успішно знято {amount}. Новий баланс: {account.GetBalance()}");
             }
             else
             {
@@ -166,8 +166,8 @@ namespace ConsoleATMApp
     {
         public string CardNumber { get; private set; }
         public string OwnerName { get; private set; }
-        public decimal Balance { get; private set; }
-        private string Pin { get; set; }
+        private decimal Balance;
+        private string Pin;
 
         public Account(string cardNumber, string ownerName, decimal initialBalance, string pin)
         {
@@ -182,6 +182,11 @@ namespace ConsoleATMApp
             return this.CardNumber == cardNumber && this.Pin == pin;
         }
 
+        public decimal GetBalance()
+        {
+            return Balance;
+        }
+
         public bool Withdraw(decimal amount)
         {
             if (amount > 0 && amount <= Balance)
@@ -192,11 +197,19 @@ namespace ConsoleATMApp
             return false;
         }
 
+        public void Deposit(decimal amount)
+        {
+            if (amount > 0)
+            {
+                Balance += amount;
+            }
+        }
+
         public bool Transfer(Account recipient, decimal amount)
         {
             if (Withdraw(amount))
             {
-                recipient.Balance += amount;
+                recipient.Deposit(amount);  // Використовуємо метод Deposit замість прямого доступу до Balance
                 return true;
             }
             return false;
