@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using BankLibrary;
 
@@ -13,8 +8,9 @@ namespace Bank
 {
     public partial class Form1 : Form
     {
-        private List<Account> _accounts;  
+        private List<Account> _accounts;
         private Account _currentAccount;
+
         public Form1()
         {
             InitializeComponent();
@@ -38,6 +34,7 @@ namespace Bank
             ToggleAuthenticatedControls(false);
             logoutButton.Visible = false;
         }
+
         private void InitializeEvents()
         {
             authenticateButton.Click -= authenticateButton_Click;
@@ -55,6 +52,7 @@ namespace Bank
             logoutButton.Click -= logoutButton_Click;
             logoutButton.Click += logoutButton_Click;
         }
+
         private void ToggleAuthenticatedControls(bool isAuthenticated)
         {
             checkBalanceButton.Visible = isAuthenticated;
@@ -69,16 +67,22 @@ namespace Bank
             label5.Visible = isAuthenticated;
             label6.Visible = isAuthenticated;
             label7.Visible = isAuthenticated;
-        }
-        private void Form1_Load(object sender, EventArgs e)
-        {
 
+            if (!isAuthenticated)
+            {
+                cardNumberTextBox.Clear();
+                pinTextBox.Clear();
+                withdrawAmountTextBox.Clear();
+                transferAmountTextBox.Clear();
+                recipientCardTextBox.Clear();
+                messagesListBox.Items.Clear();
+            }
         }
+
         private void DisplayMessage(string message)
         {
             messagesListBox.Items.Add(message);
         }
-
 
         private void authenticateButton_Click(object sender, EventArgs e)
         {
@@ -107,7 +111,6 @@ namespace Bank
         private void withdrawButton_Click(object sender, EventArgs e)
         {
             if (_currentAccount == null) return;
-
             if (decimal.TryParse(withdrawAmountTextBox.Text, out decimal amount))
             {
                 if (_currentAccount.Withdraw(amount))
@@ -153,14 +156,12 @@ namespace Bank
         {
             DisplayMessage("Ви вийшли з акаунту.");
             ToggleAuthenticatedControls(false);
-            cardNumberTextBox.Clear();
-            pinTextBox.Clear();
-            withdrawAmountTextBox.Clear();
-            transferAmountTextBox.Clear();
-            recipientCardTextBox.Clear();
-            messagesListBox.Items.Clear();
-
             _currentAccount = null;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
