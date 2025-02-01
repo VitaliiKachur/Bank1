@@ -1,5 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace ConsoleATMApp
 {
@@ -7,7 +10,7 @@ namespace ConsoleATMApp
     {
         static void Main()
         {
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.OutputEncoding = Encoding.UTF8;
             ATMApp atmApp = new ATMApp();
             atmApp.Run();
         }
@@ -38,38 +41,50 @@ namespace ConsoleATMApp
             }
 
             bool continueUsing = true;
+            while (continueUsing)
+            {
+                DisplayMenu();
+                continueUsing = ProcessUserChoice(authenticatedAccount);
+            }
+
+            Console.WriteLine("Дякуємо за використання сервісу!");
+        }
+
+        private void DisplayMenu()
+        {
+            Console.Clear();
+            Console.WriteLine("==== Головне меню ====");
+            Console.WriteLine("1. Перевірка балансу");
+            Console.WriteLine("2. Зняття коштів");
+            Console.WriteLine("3. Переказ коштів");
+            Console.WriteLine("4. Вихід");
+            Console.Write("Оберіть опцію: ");
+        }
+
+        private bool ProcessUserChoice(Account authenticatedAccount)
+        {
             var actions = new Dictionary<string, Action>
             {
                 { "1", () => ShowBalance(authenticatedAccount) },
                 { "2", () => WithdrawMoney(authenticatedAccount) },
                 { "3", () => TransferMoney(authenticatedAccount) },
-                { "4", () => continueUsing = false }
+                { "4", () => { Console.WriteLine("Вихід з системи..."); } }
             };
 
-            while (continueUsing)
+            string choice = Console.ReadLine();
+            if (actions.TryGetValue(choice, out Action action))
             {
-                Console.Clear();
-                Console.WriteLine("==== Головне меню ====");
-                Console.WriteLine("1. Перевірка балансу");
-                Console.WriteLine("2. Зняття коштів");
-                Console.WriteLine("3. Переказ коштів");
-                Console.WriteLine("4. Вихід");
-                Console.Write("Оберіть опцію: ");
-
-                string choice = Console.ReadLine();
-                if (actions.TryGetValue(choice, out Action action))
-                {
-                    action.Invoke();
-                }
-                else
-                {
-                    Console.WriteLine("Неправильний вибір.");
-                }
-
-                Console.WriteLine("\nНатисніть Enter для продовження...");
-                Console.ReadLine();
+                action.Invoke();
             }
-            Console.WriteLine("Дякуємо за використання сервісу!");
+            else
+            {
+                Console.WriteLine("Неправильний вибір.");
+            }
+
+            Console.WriteLine("\nНатисніть Enter для продовження...");
+            Console.ReadLine();
+
+            return choice != "4"; // Повертаємо `false`, якщо користувач вибрав вихід
         }
 
         private void ShowBalance(Account account)
@@ -141,24 +156,34 @@ namespace ConsoleATMApp
             {
                 Console.Clear();
                 Console.WriteLine("=== Вхід в систему ===");
-                Console.Write("Введіть номер картки: ");
-                string cardNumber = Console.ReadLine();
-                Console.Write("Введіть PIN: ");
-                string pin = Console.ReadLine();
 
-                foreach (var account in accounts)
+                (string cardNumber, string pin) = PromptForCredentials();
+                Account account = FindAccount(cardNumber, pin);
+
+                if (account != null)
                 {
-                    if (account.Authenticate(cardNumber, pin))
-                    {
-                        Console.Clear();
-                        Console.WriteLine("Аутентифікація успішна!\n");
-                        return account;
-                    }
+                    Console.Clear();
+                    Console.WriteLine("Аутентифікація успішна!\n");
+                    return account;
                 }
 
                 Console.WriteLine("Невдала спроба аутентифікації. Спробуйте ще раз!");
                 Console.ReadLine();
             }
+        }
+
+        private (string cardNumber, string pin) PromptForCredentials()
+        {
+            Console.Write("Введіть номер картки: ");
+            string cardNumber = Console.ReadLine();
+            Console.Write("Введіть PIN: ");
+            string pin = Console.ReadLine();
+            return (cardNumber, pin);
+        }
+
+        private Account FindAccount(string cardNumber, string pin)
+        {
+            return accounts.FirstOrDefault(acc => acc.Authenticate(cardNumber, pin));
         }
     }
 
@@ -209,7 +234,7 @@ namespace ConsoleATMApp
         {
             if (Withdraw(amount))
             {
-                recipient.Deposit(amount);  // Використовуємо метод Deposit замість прямого доступу до Balance
+                recipient.Deposit(amount);
                 return true;
             }
             return false;
