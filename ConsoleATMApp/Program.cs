@@ -38,38 +38,50 @@ namespace ConsoleATMApp
             }
 
             bool continueUsing = true;
-            var actions = new Dictionary<string, Action>
-            {
-                { "1", () => ShowBalance(authenticatedAccount) },
-                { "2", () => WithdrawMoney(authenticatedAccount) },
-                { "3", () => TransferMoney(authenticatedAccount) },
-                { "4", () => continueUsing = false }
-            };
-
             while (continueUsing)
             {
                 Console.Clear();
-                Console.WriteLine("==== Головне меню ====");
-                Console.WriteLine("1. Перевірка балансу");
-                Console.WriteLine("2. Зняття коштів");
-                Console.WriteLine("3. Переказ коштів");
-                Console.WriteLine("4. Вихід");
-                Console.Write("Оберіть опцію: ");
-
-                string choice = Console.ReadLine();
-                if (actions.TryGetValue(choice, out Action action))
-                {
-                    action.Invoke();
-                }
-                else
-                {
-                    Console.WriteLine("Неправильний вибір.");
-                }
-
-                Console.WriteLine("\nНатисніть Enter для продовження...");
-                Console.ReadLine();
+                ShowMenu();
+                continueUsing = HandleUserChoice(authenticatedAccount);
             }
+
             Console.WriteLine("Дякуємо за використання сервісу!");
+        }
+
+        private void ShowMenu()
+        {
+            Console.WriteLine("==== Головне меню ====");
+            Console.WriteLine("1. Перевірка балансу");
+            Console.WriteLine("2. Зняття коштів");
+            Console.WriteLine("3. Переказ коштів");
+            Console.WriteLine("4. Вихід");
+            Console.Write("Оберіть опцію: ");
+        }
+
+        private bool HandleUserChoice(Account account)
+        {
+            string choice = Console.ReadLine();
+            switch (choice)
+            {
+                case "1":
+                    ShowBalance(account);
+                    break;
+                case "2":
+                    WithdrawMoney(account);
+                    break;
+                case "3":
+                    TransferMoney(account);
+                    break;
+                case "4":
+                    return false;
+                default:
+                    Console.WriteLine("Неправильний вибір.");
+                    break;
+            }
+
+            Console.WriteLine("\nНатисніть Enter для продовження...");
+            Console.ReadLine();
+            return true;
         }
 
         private void ShowBalance(Account account)

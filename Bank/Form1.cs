@@ -85,6 +85,11 @@ namespace Bank
             string cardNumber = cardNumberTextBox.Text;
             string pin = pinTextBox.Text;
 
+            AuthenticateUser(cardNumber, pin);
+        }
+
+        private void AuthenticateUser(string cardNumber, string pin)
+        {
             if (_accounts.TryGetValue(cardNumber, out var account) && account.Authenticate(cardNumber, pin))
             {
                 _currentAccount = account;
@@ -102,50 +107,49 @@ namespace Bank
         {
             ExecuteIfAuthenticated(() => _currentAccount.CheckBalance());
         }
+
         private void withdrawButton_Click(object sender, EventArgs e)
         {
-            ExecuteIfAuthenticated(() =>
-            {
-                if (decimal.TryParse(withdrawAmountTextBox.Text, out decimal amount))
-                {
-                    if (_currentAccount.Withdraw(amount))
-                    {
-                        DisplayMessage($"Зняття {amount} успішно виконано.");
-                    }
-                    else
-                    {
-                        DisplayMessage("Недостатньо коштів.");
-                    }
-                }
-                else
-                {
-                    DisplayMessage("Введіть коректну суму для зняття.");
-                }
-            });
+            ExecuteTransaction(withdrawAmountTextBox.Text, (amount) => _currentAccount.Withdraw(amount), "Зняття");
         }
 
         private void transferButton_Click(object sender, EventArgs e)
         {
-            ExecuteIfAuthenticated(() =>
+            ExecuteTransaction(transferAmountTextBox.Text, (amount) =>
             {
-                if (decimal.TryParse(transferAmountTextBox.Text, out decimal amount))
+                string recipientCard = recipientCardTextBox.Text;
+                if (_accounts.TryGetValue(recipientCard, out var recipient))
                 {
-                    string recipientCard = recipientCardTextBox.Text;
+                    return _currentAccount.Transfer(recipient, amount);
+                }
+                DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
+                return false;
+            }, "Переказ");
+        }
 
-                    if (_accounts.TryGetValue(recipientCard, out var recipient) && _currentAccount.Transfer(recipient, amount))
-                    {
-                        DisplayMessage($"Переказ {amount} на картку {recipientCard} успішно виконано.");
-                    }
-                    else
-                    {
-                        DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
-                    }
-                }
-                else
-                {
-                    DisplayMessage("Введіть коректну суму для переказу.");
-                }
-            });
+        private void ExecuteTransaction(string amountText, Func<decimal, bool> operation, string operationName)
+        {
+            decimal amount = ParseAmount(amountText);
+            if (amount <= 0) return;
+
+            if (operation(amount))
+            {
+                DisplayMessage($"{operationName} {amount} успішно виконано.");
+            }
+            else
+            {
+                DisplayMessage($"Не вдалося виконати {operationName}. Перевірте наявність коштів або правильність введених даних.");
+            }
+        }
+
+        private decimal ParseAmount(string input)
+        {
+            if (decimal.TryParse(input, out decimal amount) && amount > 0)
+            {
+                return amount;
+            }
+            DisplayMessage("Введіть коректну суму.");
+            return -1;
         }
 
         private void logoutButton_Click(object sender, EventArgs e)
@@ -153,11 +157,6 @@ namespace Bank
             DisplayMessage("Ви вийшли з акаунту.");
             ToggleAuthenticatedControls(false);
             _currentAccount = null;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
         }
     }
 }
