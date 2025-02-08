@@ -103,18 +103,43 @@ namespace Bank
             }
         }
 
-
         private void checkBalanceButton_Click(object sender, EventArgs e)
         {
             ExecuteIfAuthenticated(() => _currentAccount.CheckBalance());
         }
+
         private void withdrawButton_Click(object sender, EventArgs e)
         {
-            ExecuteIfAuthenticated(() =>
+            ExecuteTransaction(withdrawAmountTextBox.Text, (amount) => _currentAccount.Withdraw(amount), "Зняття");
+        }
+
+        private void transferButton_Click(object sender, EventArgs e)
+        {
+            ExecuteTransaction(transferAmountTextBox.Text, (amount) =>
             {
-                decimal amount = ParseAmount(withdrawAmountTextBox.Text);
-                ProcessWithdraw(amount);
-            });
+                string recipientCard = recipientCardTextBox.Text;
+                if (_accounts.TryGetValue(recipientCard, out var recipient))
+                {
+                    return _currentAccount.Transfer(recipient, amount);
+                }
+                DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
+                return false;
+            }, "Переказ");
+        }
+
+        private void ExecuteTransaction(string amountText, Func<decimal, bool> operation, string operationName)
+        {
+            decimal amount = ParseAmount(amountText);
+            if (amount <= 0) return;
+
+            if (operation(amount))
+            {
+                DisplayMessage($"{operationName} {amount} успішно виконано.");
+            }
+            else
+            {
+                DisplayMessage($"Не вдалося виконати {operationName}. Перевірте наявність коштів або правильність введених даних.");
+            }
         }
 
         private decimal ParseAmount(string input)
@@ -123,60 +148,15 @@ namespace Bank
             {
                 return amount;
             }
-            DisplayMessage("Введіть коректну суму для зняття.");
+            DisplayMessage("Введіть коректну суму.");
             return -1;
         }
-
-        private void ProcessWithdraw(decimal amount)
-        {
-            if (amount <= 0) return;
-
-            if (_currentAccount.Withdraw(amount))
-            {
-                DisplayMessage($"Зняття {amount} успішно виконано.");
-            }
-            else
-            {
-                DisplayMessage("Недостатньо коштів.");
-            }
-        }
-
-
-        private void transferButton_Click(object sender, EventArgs e)
-        {
-            ExecuteIfAuthenticated(() =>
-            {
-                decimal amount = ParseAmount(transferAmountTextBox.Text);
-                ProcessTransfer(amount);
-            });
-        }
-
-        private void ProcessTransfer(decimal amount)
-        {
-            if (amount <= 0) return;
-
-            string recipientCard = recipientCardTextBox.Text;
-            if (_accounts.TryGetValue(recipientCard, out var recipient) && _currentAccount.Transfer(recipient, amount))
-            {
-                DisplayMessage($"Переказ {amount} на картку {recipientCard} успішно виконано.");
-            }
-            else
-            {
-                DisplayMessage("Переказ не виконано. Перевірте наявність коштів або номер картки одержувача.");
-            }
-        }
-
 
         private void logoutButton_Click(object sender, EventArgs e)
         {
             DisplayMessage("Ви вийшли з акаунту.");
             ToggleAuthenticatedControls(false);
             _currentAccount = null;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
         }
     }
 }
